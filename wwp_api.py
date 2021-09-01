@@ -75,8 +75,7 @@ RDS_HOST = 'io-mysqldb8.cxjnrciilyjq.us-west-1.rds.amazonaws.com'
 RDS_PORT = 3306
 # RDS_USER = 'root'
 RDS_USER = 'admin'
-# RDS_DB = 'feed_the_hungry'
-RDS_DB = 'walk_with_pop'
+RDS_DB = 'wwp'
 
 # app = Flask(__name__)
 app = Flask(__name__, template_folder='assets')
@@ -340,7 +339,7 @@ def get_new_roundUID(conn):
 
 
 def get_new_userUID(conn):
-    newUserQuery = execute("CALL walk_with_pop.new_user_uid()", 'get', conn)
+    newUserQuery = execute("CALL wwp.new_user_uid()", 'get', conn)
     if newUserQuery['code'] == 280:
         return newUserQuery['result'][0]['new_id']
     return "Could not generate new user UID", 500
@@ -481,7 +480,7 @@ class SignUp(Resource):
 
             # check if there is a same customer_id existing
             check_user_query = """
-                        SELECT user_uid FROM walk_with_pop.user
+                        SELECT user_uid FROM wwp.user
                         WHERE user_email = \'""" + email + """\'
                         OR user_phone = \'""" + phone + """\'
                         """
@@ -497,7 +496,7 @@ class SignUp(Resource):
                     print("New User ID: ", NewUserID)
                     # write everything to database
                     add_user_query = """
-                        INSERT INTO walk_with_pop.user
+                        INSERT INTO wwp.user
                         SET user_uid = \'""" + NewUserID + """\',
                             user_timestamp = \'""" + timestamp + """\',
                             user_phone = \'""" + phone + """\',
