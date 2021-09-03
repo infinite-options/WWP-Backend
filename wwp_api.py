@@ -45,6 +45,8 @@ from hashlib import sha512
 from math import ceil
 import string
 
+from PIL import Image, ImageDraw, ImageFont
+
 # BING API KEY
 # Import Bing API key into bing_api_key.py
 
@@ -154,7 +156,7 @@ s3 = boto3.client('s3')
 
 # aws s3 bucket where the image is stored
 # BUCKET_NAME = os.environ.get('MEAL_IMAGES_BUCKET')
-BUCKET_NAME = 'servingnow'
+BUCKET_NAME = 'wwp'
 # allowed extensions for uploading a profile photo file
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 
@@ -374,6 +376,63 @@ def get_new_appointmentUID(conn):
 
 
 # --WWP Queries start here -------------------------------------------------------------------------------
+
+class SetUpProfile(Resource):
+    def post(self):
+        response = {}
+        try:
+            conn = connect()
+            # data = request.get_json(force=True)
+            # print("Received data: ", data)
+            first_name = request.form.get("first_name") # form data not as a json
+            last_name = request.form.get("last_name")
+            nickname = request.form.get("nickname")
+            email = request.form.get("email")
+            phone = request.form.get("phone")
+            dob = request.form.get("date of birth")  # needs to be parsed and converted to date format
+            bio = request.form.get("bio")
+            hobbies = request.form.get("hobbies")
+            emergency_contact = request.form.get("emergency_contact")
+            photo = request.files.get('user_photo') if request.files.get('user_photo') is not None else 'NULL'
+
+            get_user_uid_query = '''
+                                SELECT user_uid FROM wwp.user
+                                WHERE email = \'''' + email + '''\'
+                                OR phone = \'''' + phone + '''\'
+                                '''
+
+            user_uid = execute(get_user_uid_query, "get", conn)
+            print("user_uid info: ", user_uid)
+
+            if user_uid["code"] == 280:
+                uid = user_uid["result"][0]["user_uid"]
+                key = "wwp_user/" + str(uid) + "_" + getNow()
+                photo_url = helper_upload_user_img(photo, key)
+                insert_details_query = '''
+                                        UPDATE wwp.user
+                                        SET user_first_name = \'''' + first_name + '''\',
+                                            user_last_name = \'''' + last_name + '''\',
+                                            user_nickname = \'''' + nickname + '''\'
+                                            user_email = \'''' + email + '''\',
+                                            user_phone = \'''' + phone + '''\',
+                                            user_dob = \'''' + dob + '''\',
+                                            user_bio = \'''' + bio + '''\',
+                                            user_hobbies = \'''' + hobbies + '''\'
+                                        WHERE email = \'''' + email + '''\'
+                                                OR phone = \'''' + phone + '''\'   
+                                        '''
+                insert_details = execute(insert_details_query, "post", conn)
+                print("insert profile info: ", insert_details)
+                if insert_details["code"] == 281:
+                    response["message"] = "User profile setup successful."
+                    return response, 200
+        except:
+            raise BadRequest("setup user profile request failed")
+        finally:
+            disconnect(conn)
+
+
+
 class SignUp(Resource):
     def post(self):
         response = {}
@@ -1199,7 +1258,7 @@ class stripe_key(Resource):
 # ===========================================================
 # Define API routes
 api.add_resource(SignUp, '/api/v2/SignUp')
-
+api.add_resource(SetUpProfile, '/api/v2/SetUpProfile')
 # reference APIs
 
 api.add_resource(CreateAppointment, "/api/v2/createAppointment")
