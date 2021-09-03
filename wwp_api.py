@@ -1069,20 +1069,20 @@ class Login(Resource):
             query = (
                     """
                     # CUSTOMER QUERY 1: LOGIN
-                    SELECT customer_uid,
-                        customer_last_name,
-                        customer_first_name,
-                        customer_email,
-                        password_hashed,
+                    SELECT user_uid,
+                        user_last_name,
+                        user_first_name,
+                        user_email,
+                        user_password_hashed,
                         email_verified,
                         user_social_media,
                         user_access_token,
                         user_refresh_token,
                         user_access_token,
                         user_refresh_token,
-                        social_id
-                    FROM io.customers c
-                    WHERE customer_email = \'""" + email + """\';
+                        user_social_media_id
+                    FROM wwp.user
+                    WHERE user_email = \'""" + email + """\';
                 """
             )
             items = execute(query, "get", conn)
@@ -1100,13 +1100,13 @@ class Login(Resource):
                 return items
             else:
                 print(items["result"])
-                print("sc: ", items["result"][0]["user_social_media"])
+                print("sc: ", items["result"][0]["user_social_media_id"])
 
                 # checks if login was by social media
                 if (
                         password
-                        and items["result"][0]["user_social_media"] != "NULL"
-                        and items["result"][0]["user_social_media"] != None
+                        and items["result"][0]["user_social_media_id"] != "NULL"
+                        and items["result"][0]["user_social_media_id"] != None
                 ):
                     response["message"] = "Need to login by Social Media"
                     response["code"] = 401
@@ -1115,7 +1115,7 @@ class Login(Resource):
                 # nothing to check
                 elif (password is None and social_id is None) or (
                         password is None
-                        and items["result"][0]["user_social_media"] == "NULL"
+                        and items["result"][0]["user_social_media_id"] == "NULL"
                 ):
                     response["message"] = "Enter password else login from social media"
                     response["code"] = 405
@@ -1123,11 +1123,11 @@ class Login(Resource):
 
                 # compare passwords if user_social_media is false
                 elif (
-                        items["result"][0]["user_social_media"] == "NULL"
-                        or items["result"][0]["user_social_media"] == None
+                        items["result"][0]["user_social_media_id"] == "NULL"
+                        or items["result"][0]["user_social_media_id"] == None
                 ) and password is not None:
 
-                    if items["result"][0]["password_hashed"] != password:
+                    if items["result"][0]["user_password_hashed"] != password:
                         items["message"] = "Wrong password"
                         items["result"] = ""
                         items["code"] = 406
@@ -1141,20 +1141,20 @@ class Login(Resource):
                         return response
 
                 # compare the social_id because it never expire.
-                elif (items["result"][0]["user_social_media"]) != "NULL":
+                elif (items["result"][0]["user_social_media_id"]) != "NULL":
 
-                    if signup_platform != items["result"][0]["user_social_media"]:
+                    if signup_platform != items["result"][0]["user_social_media_id"]:
                         items["message"] = (
                                 "Wrong social media used for signup. Use '"
-                                + items["result"][0]["user_social_media"]
+                                + items["result"][0]["user_social_media_id"]
                                 + "'."
                         )
                         items["result"] = ""
                         items["code"] = 411
                         return items
 
-                    if items["result"][0]["social_id"] != social_id:
-                        print(items["result"][0]["social_id"])
+                    if items["result"][0]["user_social_media_id"] != social_id:
+                        print(items["result"][0]["user_social_media_id"])
 
                         items["message"] = "Cannot Authenticated. Social_id is invalid"
                         items["result"] = ""
@@ -1169,11 +1169,11 @@ class Login(Resource):
                     response["message"] = string
                     response["code"] = 500
                     return response
-                del items["result"][0]["password_hashed"]
+                del items["result"][0]["user_password_hashed"]
                 del items["result"][0]["email_verified"]
 
                 query = (
-                        "SELECT * from io.customers WHERE customer_email = '" + email + "';"
+                        "SELECT * from wwp.user WHERE user_email = '" + email + "';"
                 )
                 items = execute(query, "get", conn)
                 items["message"] = "Authenticated successfully."
