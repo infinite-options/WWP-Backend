@@ -390,7 +390,7 @@ class SignUp(Resource):
             social_id = data["social_id"] if data.get("social_id") is not None else "NULL"
             # referral = data["referral_source"]
 
-            # cust_id = data["cust_id"] if data.get("cust_id") is not None else "NULL"
+            # user_id = data["cust_id"] if data.get("cust_id") is not None else "NULL"
 
             if (
                     data.get("social") is None
@@ -712,23 +712,23 @@ class createAccount(Resource):
             conn = connect()
             data = request.get_json(force=True)
             print(data)
-            email = data["email"]
+            email = data["email"] if data.get("email") is not None else "NULL"
             firstName = data["first_name"]
             lastName = data["last_name"]
-            phone = data["phone_number"]
-            address = data["address"]
-            unit = data["unit"] if data.get("unit") is not None else "NULL"
+            phone = data["phone_number"] if data.get("phone_number") is not None else "NULL"
+            # address = data["address"]
+            # unit = data["unit"] if data.get("unit") is not None else "NULL"
             social_id = (
                 data["social_id"] if data.get("social_id") is not None else "NULL"
             )
-            city = data["city"]
-            state = data["state"]
-            zip_code = data["zip_code"]
-            latitude = data["latitude"]
-            longitude = data["longitude"]
-            referral = data["referral_source"]
+            # city = data["city"]
+            # state = data["state"]
+            # zip_code = data["zip_code"]
+            # latitude = data["latitude"]
+            # longitude = data["longitude"]
+            # referral = data["referral_source"]
             role = data["role"]
-            cust_id = data["cust_id"] if data.get("cust_id") is not None else "NULL"
+            user_id = data["user_id"] if data.get("user_id") is not None else "NULL"
 
             if (
                     data.get("social") is None
@@ -741,10 +741,10 @@ class createAccount(Resource):
                 social_signup = True
 
             print(social_signup)
-            get_user_id_query = "CALL new_customer_uid();"
+            get_user_id_query = "CALL new_user_uid();"
             NewUserIDresponse = execute(get_user_id_query, "get", conn)
 
-            print("New User Code: ", NewUserIDresponse["code"])
+            print("New User info: ", NewUserIDresponse)
 
             if NewUserIDresponse["code"] == 490:
                 string = " Cannot get new User id. "
@@ -753,6 +753,7 @@ class createAccount(Resource):
                 print("*" * (len(string) + 10))
                 response["message"] = "Internal Server Error."
                 return response, 500
+
             NewUserID = NewUserIDresponse["result"][0]["new_id"]
             print("New User ID: ", NewUserID)
 
@@ -781,15 +782,15 @@ class createAccount(Resource):
 
                 print("ELSE- OUT")
 
-            if cust_id != "NULL" and cust_id:
+            if user_id != "NULL" and user_id:
 
-                NewUserID = cust_id
+                NewUserID = user_id
 
                 query = (
                         """
                         SELECT user_access_token, user_refresh_token, mobile_access_token, mobile_refresh_token 
-                        FROM io.customers
-                        WHERE customer_uid = \'""" + cust_id + """\';
+                        FROM wwp.user
+                        WHERE user_uid = \'""" + user_id + """\';
                     """
                 )
                 it = execute(query, "get", conn)
@@ -809,37 +810,40 @@ class createAccount(Resource):
 
                 customer_insert_query = [
                     """
-                        UPDATE io.customers 
+                        UPDATE wwp.user 
                         SET 
-                        customer_created_at = \'""" + (datetime.now()).strftime("%Y-%m-%d %H:%M:%S") + """\',
-                        customer_first_name = \'""" + firstName + """\',
-                        customer_last_name = \'""" + lastName + """\',
-                        customer_phone_num = \'""" + phone + """\',
-                        customer_address = \'""" + address + """\',
+                        user_timestamp = \'""" + (datetime.now()).strftime("%Y-%m-%d %H:%M:%S") + """\',
+                        user_first_name = \'""" + firstName + """\',
+                        user_last_name = \'""" + lastName + """\',
+                        user_phone = \'""" + phone + """\',
+                        user_email = \'""" + email + """\'
+                        user_password_salt = \'""" + salt + """\',
+                        user_password_hashed = \'""" + password + """\',
+                        user_password_algorithm = \'""" + algorithm + """\',
+                        role = \'""" + role + """\',
+                        user_social_media = \'""" + user_social_signup + """\',
+                        social_timestamp  =  DATE_ADD(now() , INTERVAL 14 DAY)
+                        WHERE user_uid = \'""" + user_id + """\';
+                    """
+                ]
+                '''
+                    customer_address = \'""" + address + """\',
                         customer_unit = \'""" + unit + """\',
                         customer_city = \'""" + city + """\',
                         customer_state = \'""" + state + """\',
                         customer_zip = \'""" + zip_code + """\',
                         customer_lat = \'""" + latitude + """\',
                         customer_long = \'""" + longitude + """\',
-                        password_salt = \'""" + salt + """\',
-                        password_hashed = \'""" + password + """\',
-                        password_algorithm = \'""" + algorithm + """\',
                         referral_source = \'""" + referral + """\',
-                        role = \'""" + role + """\',
-                        user_social_media = \'""" + user_social_signup + """\',
-                        social_timestamp  =  DATE_ADD(now() , INTERVAL 14 DAY)
-                        WHERE customer_uid = \'""" + cust_id + """\';
-                    """
-                ]
+                '''
 
             else:
 
                 # check if there is a same customer_id existing
                 query = (
                         """
-                        SELECT customer_email FROM io.customers
-                        WHERE customer_email = \'"""
+                        SELECT user_email FROM wwp.user
+                        WHERE user_email = \'"""
                         + email
                         + "';"
                 )
@@ -862,85 +866,52 @@ class createAccount(Resource):
                 # write everything to database
                 customer_insert_query = [
                     """
-                        INSERT INTO io.customers 
-                        (
-                            customer_uid,
-                            customer_created_at,
-                            customer_first_name,
-                            customer_last_name,
-                            customer_phone_num,
-                            customer_email,
-                            customer_address,
-                            customer_unit,
-                            customer_city,
-                            customer_state,
-                            customer_zip,
-                            customer_lat,
-                            customer_long,
-                            password_salt,
-                            password_hashed,
-                            password_algorithm,
-                            referral_source,
-                            role,
-                            user_social_media,
-                            user_access_token,
-                            social_timestamp,
-                            user_refresh_token,
-                            mobile_access_token,
-                            mobile_refresh_token,
-                            social_id
-                        )
-                        VALUES
-                        (
-                        
-                            \'""" + NewUserID + """\',
-                            \'""" + (datetime.now()).strftime("%Y-%m-%d %H:%M:%S") + """\',
-                            \'""" + firstName + """\',
-                            \'""" + lastName + """\',
-                            \'""" + phone + """\',
-                            \'""" + email + """\',
-                            \'""" + address + """\',
-                            \'""" + unit + """\',
-                            \'""" + city + """\',
-                            \'""" + state + """\',
-                            \'""" + zip_code + """\',
-                            \'""" + latitude + """\',
-                            \'""" + longitude + """\',
-                            \'""" + salt + """\',
-                            \'""" + password + """\',
-                            \'""" + algorithm + """\',
-                            \'""" + referral + """\',
-                            \'""" + role + """\',
-                            \'""" + user_social_signup + """\',
-                            \'""" + user_access_token + """\',
-                            DATE_ADD(now() , INTERVAL 14 DAY),
-                            \'""" + user_refresh_token + """\',
-                            \'""" + mobile_access_token + """\',
-                            \'""" + mobile_refresh_token + """\',
-                            \'""" + social_id + """\');"""
+                        INSERT INTO wwp.user
+                        SET                        
+                            user_uid = \'""" + NewUserID + """\',
+                            user_timestamp = \'""" + (datetime.now()).strftime("%Y-%m-%d %H:%M:%S") + """\',
+                            user_first_name = \'""" + firstName + """\',
+                            user_last_name = \'""" + lastName + """\',
+                            user_phone = \'""" + phone + """\',
+                            user_email = \'""" + email + """\',
+                            user_password_salt = \'""" + salt + """\',
+                            user_password_hashed = \'""" + password + """\',
+                            user_password_algorithm = \'""" + algorithm + """\',
+                            role = \'""" + role + """\',
+                            user_social_media = \'""" + user_social_signup + """\',
+                            user_access_token = \'""" + user_access_token + """\',
+                            social_timestamp = DATE_ADD(now() , INTERVAL 14 DAY),
+                            user_refresh_token = \'""" + user_refresh_token + """\',
+                            mobile_access_token = \'""" + mobile_access_token + """\',
+                            mobile_refresh_token = \'""" + mobile_refresh_token + """\',
+                            user_social_media_id = \'""" + social_id + """\';"""
                 ]
-            print(customer_insert_query[0])
+            # print(customer_insert_query[0])
             items = execute(customer_insert_query[0], "post", conn)
+            print("user_insert_query response: ", items)
 
             if items["code"] != 281:
                 items["result"] = ""
                 items["code"] = 480
                 items["message"] = "Error while inserting values in database"
+                return items 
 
+                
+            elif items["code"] == 281:
+                items["result"] = {
+                    "first_name": firstName,
+                    "last_name": lastName,
+                    "user_uid": NewUserID,
+                    "user_access_token": user_access_token,
+                    "user_refresh_token": user_refresh_token,
+                    "mobile_access_token": mobile_access_token,
+                    "mobile_refresh_token": mobile_refresh_token,
+                    "user_social_media_id": social_id,
+                }
+                items["message"] = "Signup successful"
+                items["code"] = 200
+            
                 return items
-
-            items["result"] = {
-                "first_name": firstName,
-                "last_name": lastName,
-                "customer_uid": NewUserID,
-                "access_token": user_access_token,
-                "refresh_token": user_refresh_token,
-                "access_token": mobile_access_token,
-                "refresh_token": mobile_refresh_token,
-                "social_id": social_id,
-            }
-            items["message"] = "Signup successful"
-            items["code"] = 200
 
             print("sss-----", social_signup)
 
@@ -1055,7 +1026,7 @@ class AccountSalt(Resource):
             disconnect(conn)
 
 
-class Login(Resource):
+class login(Resource):
     def post(self):
         response = {}
         try:
@@ -1208,7 +1179,7 @@ api.add_resource(AddContact, "/api/v2/addContact")
 
 api.add_resource(createAccount, "/api/v2/createAccount")
 api.add_resource(AccountSalt, "/api/v2/AccountSalt")
-api.add_resource(Login, "/api/v2/Login/")
+api.add_resource(login, "/api/v2/login/")
 api.add_resource(stripe_key, '/api/v2/stripe_key/<string:desc>')
 
 if __name__ == '__main__':
