@@ -1178,7 +1178,7 @@ api.add_resource(AvailableAppointments, "/api/v2/availableAppointments/<string:d
 api.add_resource(AddContact, "/api/v2/addContact")
 
 api.add_resource(createAccount, "/api/v2/createAccount")
-api.add_resource(accountsalt, "/api/v2/AccountSalt")
+api.add_resource(accountsalt, "/api/v2/accountsalt")
 api.add_resource(login, "/api/v2/login/")
 api.add_resource(stripe_key, '/api/v2/stripe_key/<string:desc>')
 
