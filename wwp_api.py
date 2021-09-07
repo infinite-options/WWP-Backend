@@ -1114,10 +1114,10 @@ class login(Resource):
                 # compare the social_id because it never expire.
                 elif (items["result"][0]["user_social_media_id"]) != "NULL":
 
-                    if signup_platform != items["result"][0]["user_social_media_id"]:
+                    if signup_platform != items["result"][0]["user_social_media"]:
                         items["message"] = (
                                 "Wrong social media used for signup. Use '"
-                                + items["result"][0]["user_social_media_id"]
+                                + items["result"][0]["user_social_media"]
                                 + "'."
                         )
                         items["result"] = ""
