@@ -374,334 +374,6 @@ def get_new_appointmentUID(conn):
 
 
 # --WWP Queries start here -------------------------------------------------------------------------------
-class SignUp(Resource):
-    def post(self):
-        response = {}
-        items = []
-        try:
-            conn = connect()
-            data = request.get_json(force=True)
-            print(data)
-            role = data["role"]
-            email = data["email"] if data.get("email") is not None else "NULL"
-            phone = data["phone"] if data.get("phone") is not None else "NULL"
-            timestamp = getNow()
-
-            social_id = data["social_id"] if data.get("social_id") is not None else "NULL"
-            # referral = data["referral_source"]
-
-            # user_id = data["cust_id"] if data.get("cust_id") is not None else "NULL"
-
-            if (
-                    data.get("social") is None
-                    or data.get("social") == "FALSE"
-                    or data.get("social") == False
-                    or data.get("social") == "NULL"
-            ):
-                social_signup = False
-            else:
-                social_signup = True
-
-            print(social_signup)
-
-            if social_signup == False:
-                salt = (datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
-
-                password = sha512((data["password"] + salt).encode()).hexdigest()
-                print("password------", password)
-                algorithm = "SHA512"
-                mobile_access_token = "NULL"
-                mobile_refresh_token = "NULL"
-                user_access_token = "NULL"
-                user_refresh_token = "NULL"
-                user_social_signup = "NULL"
-            else:
-                mobile_access_token = data["mobile_access_token"]
-                mobile_refresh_token = data["mobile_refresh_token"]
-                user_access_token = data["user_access_token"]
-                user_refresh_token = data["user_refresh_token"]
-                salt = "NULL"
-                password = "NULL"
-                algorithm = "NULL"
-                user_social_signup = data["social"]
-                print("ELSE- OUT")
-
-            # if cust_id != "NULL" and cust_id:
-            #     NewUserID = cust_id
-            #     query = (
-            #             """
-            #             SELECT user_access_token, user_refresh_token, mobile_access_token, mobile_refresh_token
-            #             FROM io.customers
-            #             WHERE customer_uid = \'""" + cust_id + """\';
-            #         """
-            #     )
-            #     it = execute(query, "get", conn)
-            #     print("it-------", it)
-            #
-            #     if it["result"][0]["user_access_token"] != "FALSE":
-            #         user_access_token = it["result"][0]["user_access_token"]
-            #
-            #     if it["result"][0]["user_refresh_token"] != "FALSE":
-            #         user_refresh_token = it["result"][0]["user_refresh_token"]
-            #
-            #     if it["result"][0]["mobile_access_token"] != "FALSE":
-            #         mobile_access_token = it["result"][0]["mobile_access_token"]
-            #
-            #     if it["result"][0]["mobile_refresh_token"] != "FALSE":
-            #         mobile_refresh_token = it["result"][0]["mobile_refresh_token"]
-            #
-            #     customer_insert_query = [
-            #         """
-            #             UPDATE io.customers
-            #             SET
-            #             customer_created_at = \'""" + (datetime.now()).strftime("%Y-%m-%d %H:%M:%S") + """\',
-            #             customer_first_name = \'""" + firstName + """\',
-            #             customer_last_name = \'""" + lastName + """\',
-            #             customer_phone_num = \'""" + phone + """\',
-            #             customer_address = \'""" + address + """\',
-            #             customer_unit = \'""" + unit + """\',
-            #             customer_city = \'""" + city + """\',
-            #             customer_state = \'""" + state + """\',
-            #             customer_zip = \'""" + zip_code + """\',
-            #             customer_lat = \'""" + latitude + """\',
-            #             customer_long = \'""" + longitude + """\',
-            #             password_salt = \'""" + salt + """\',
-            #             password_hashed = \'""" + password + """\',
-            #             password_algorithm = \'""" + algorithm + """\',
-            #             referral_source = \'""" + referral + """\',
-            #             role = \'""" + role + """\',
-            #             user_social_media = \'""" + user_social_signup + """\',
-            #             social_timestamp  =  DATE_ADD(now() , INTERVAL 14 DAY)
-            #             WHERE customer_uid = \'""" + cust_id + """\';
-            #         """
-            #     ]
-            #
-            # else:
-
-            # check if there is a same customer_id existing
-            check_user_query = """
-                        SELECT user_uid FROM wwp.user
-                        WHERE user_email = \'""" + email + """\'
-                        OR user_phone = \'""" + phone + """\'
-                        """
-
-            user_info = execute(check_user_query, "get", conn)
-            print("user_info: ", user_info)
-            if user_info["code"] == 280:
-                if user_info["result"]:
-                    response["message"] = "User already exists, proceed to login."
-                else:
-                    print("Before write")
-                    NewUserID = get_new_userUID()
-                    print("New User ID: ", NewUserID)
-                    # write everything to database
-                    add_user_query = """
-                        INSERT INTO wwp.user
-                        SET user_uid = \'""" + NewUserID + """\',
-                            user_timestamp = \'""" + timestamp + """\',
-                            user_phone = \'""" + phone + """\',
-                            user_email = \'""" + email + """\',
-                            user_password_salt = \'""" + salt + """\',
-                            user_password_algorithm = \'""" + algorithm + """\',
-                            role = \'""" + role + """\',
-                            user_social_media = \'""" + user_social_signup + """\',
-                            user_access_token = \'""" + user_access_token + """\',
-                            user_refresh_token = \'""" + user_refresh_token + """\',
-                            mobile_access_token = \'""" + mobile_access_token + """\',
-                            mobile_refresh_token = \'""" + mobile_refresh_token + """\',
-                            user_social_media_id = \'""" + social_id + """\',
-                            social_timestamp = \'""" + timestamp + """\'
-                            """
-
-            added_user = execute(add_user_query, "post", conn)
-            print("add_user query info: ", added_user)
-            if added_user["code"] == 281:
-                response["message"] = "Signup successful"
-                return response, 200
-
-        except:
-            print("Error happened while Sign Up")
-            if "NewUserID" in locals():
-                execute(
-                    """DELETE FROM customers WHERE customer_uid = '"""
-                    + NewUserID
-                    + """';""",
-                    "post",
-                    conn,
-                )
-            raise BadRequest("Request failed, please try again later.")
-        finally:
-            disconnect(conn)
-
-
-# -- Examples of Other Queries start here -------------------------------------------------------------------------------
-
-
-# AVAILABLE APPOINTMENTS
-class AvailableAppointments(Resource):
-    def get(self, date_value):
-        print("\nInside Available Appointments")
-        response = {}
-        items = {}
-
-        try:
-            conn = connect()
-            print("Inside try block", date_value)
-
-            # CALCULATE AVAILABLE TIME SLOTS
-            query = """
-                    -- FIND AVAILABLE TIME SLOTS - WORKS
-                    SELECT -- *
-                        DATE_FORMAT(ts_begin, '%T') AS start_time
-                    FROM (
-                        -- GET ALL TIME SLOTS
-                        SELECT *,
-                            TIME(ts.begin_datetime) AS ts_begin
-                        FROM io.time_slots ts
-                        -- LEFT JOIN WITH CURRENT APPOINTMENTS
-                        LEFT JOIN (
-                            SELECT * FROM io.appointments
-                            WHERE appt_date = '""" + date_value + """') AS appt
-                        ON TIME(ts.begin_datetime) = appt.appt_time
-                        -- LEFT JOIN WITH AVAILABILITY
-                        LEFT JOIN (
-                            SELECT * FROM io.availability
-                            WHERE date = '""" + date_value + """') AS avail
-                        ON TIME(ts.begin_datetime) = avail.start_time_notavailable
-                            OR (TIME(ts.begin_datetime) > avail.start_time_notavailable AND TIME(ts.end_datetime) <= ADDTIME(avail.end_time_notavailable,"0:29"))
-                        -- LEFT JOIN WITH OPEN HOURS
-                        LEFT JOIN (
-                            SELECT * FROM nitya.days
-                            WHERE dayofweek = DAYOFWEEK('""" + date_value + """')) AS openhrs
-                        ON TIME(ts.begin_datetime) = openhrs.morning_start_time
-                            OR (TIME(ts.begin_datetime) > openhrs.morning_start_time AND TIME(ts.end_datetime) <= ADDTIME(openhrs.morning_end_time,"0:29"))
-                            OR TIME(ts.begin_datetime) = openhrs.afternoon_start_time
-                            OR (TIME(ts.begin_datetime) > openhrs.afternoon_start_time AND TIME(ts.end_datetime) <= ADDTIME(openhrs.afternoon_end_time,"0:29"))
-                    ) AS ts_avail
-                    WHERE ISNULL(ts_avail.appointment_uid)   -- NO APPOINTMENTS SCHEDULED
-                        AND ISNULL(ts_avail.prac_avail_uid)  -- NO AVAILABILITY RESTRICTIONS
-                        AND !ISNULL(days_uid);               -- OPEN HRS ONLY
-                    """
-
-            available_times = execute(query, 'get', conn)
-            print("Available Times: ", str(available_times['result']))
-            print("Number of time slots: ", len(available_times['result']))
-            # print("Available Times: ", str(available_times['result'][0]["start_time"]))
-
-            return available_times
-
-        except:
-            raise BadRequest('Available Time Request failed, please try again later.')
-        finally:
-            disconnect(conn)
-
-
-# BOOK APPOINTMENT
-class CreateAppointment(Resource):
-    def post(self):
-        print("in Create Appointment class")
-        response = {}
-        items = {}
-        try:
-            conn = connect()
-            data = request.get_json(force=True)
-            print(data)
-            # print to Received data to Terminal
-            # print("Received:", data)
-            name = data["name"]
-            phone_no = data["phone"]
-            datevalue = data["appt_date"]
-            timevalue = data["appt_time"]
-            email = data["email"]
-            company_name = data["company"]
-            company_url = data["url"]
-            message = data["message"]
-
-            print("name", name)
-            print("phone_no", phone_no)
-            print("date", datevalue)
-            print("time", timevalue)
-            print("email", email)
-            print("company_name", company_name)
-            print("company_name", company_url)
-            print("message", message)
-
-            new_appointment_uid = get_new_appointmentUID(conn)
-            print("NewID = ", new_appointment_uid)
-            print(getNow())
-
-            query = '''
-                INSERT INTO io.appointments
-                SET appointment_uid = \'''' + new_appointment_uid + '''\',
-                    appt_created_at = \'''' + getNow() + '''\',
-                    name = \'''' + name + '''\',
-                    phone_no = \'''' + phone_no + '''\',
-                    appt_date = \'''' + datevalue + '''\',
-                    appt_time = \'''' + timevalue + '''\',
-                    email = \'''' + email + '''\',
-                    company = \'''' + company_name + '''\',
-                    url = \'''' + company_url + '''\',
-                    message = \'''' + message + '''\'
-                '''
-
-            items = execute(query, "post", conn)
-            print("items: ", items)
-            if items["code"] == 281:
-                response["message"] = "Appointments Post successful"
-                return response, 200
-        except:
-            raise BadRequest("Request failed, please try again later.")
-        finally:
-            disconnect(conn)
-
-        # ENDPOINT AND JSON OBJECT THAT WORKS
-        # http://localhost:4000/api/v2/createappointment
-
-
-# ADD CONTACT
-class AddContact(Resource):
-    def post(self):
-        response = {}
-        items = {}
-        try:
-            conn = connect()
-            data = request.get_json(force=True)
-            # print to Received data to Terminal
-            # print("Received:", data)
-
-            fname = data["first_name"]
-            lname = data["last_name"]
-            email = data["email"]
-            phone = data["phone"]
-            subject = data["subject"]
-            print(data)
-
-            new_contact_uid = get_new_contactUID(conn)
-            print(new_contact_uid)
-            print(getNow())
-
-            query = '''
-                INSERT INTO io.contact
-                SET contact_uid = \'''' + new_contact_uid + '''\',
-                    contact_created_at = \'''' + getNow() + '''\',
-                    first_name = \'''' + fname + '''\',
-                    last_name = \'''' + lname + '''\',
-                    email = \'''' + email + '''\',
-                    phone = \'''' + phone + '''\',
-                    subject = \'''' + subject + '''\'
-                '''
-
-            items = execute(query, "post", conn)
-            print("items: ", items)
-            if items["code"] == 281:
-                response["message"] = "Contact Post successful"
-                return response, 200
-        except:
-            raise BadRequest("Request failed, please try again later.")
-        finally:
-            disconnect(conn)
-
-
 # -- ACCOUNT APIS -------------------------------------------------------------------------------
 
 class createAccount(Resource):
@@ -1055,7 +727,7 @@ class login(Resource):
                     FROM wwp.user
                     WHERE user_email = \'""" + email + """\';
                 """
-            )
+             )
             items = execute(query, "get", conn)
             print("Password", password)
             print(items)
@@ -1157,6 +829,274 @@ class login(Resource):
             disconnect(conn)
 
 
+class updateProfile(Resource):
+    def post(self):
+        response = {}
+        items = {}
+        try:
+            conn = connect()
+            if request.form.get("role") == "WALKIE":
+                dob = request.form.get("Date of Birth")
+                # print(dob)
+                bio = request.form.get("Bio")
+                # print(bio)
+                email = request.form.get("Email") if request.form.get("Email") is not None else "NULL"
+                # print(email)
+                phone = request.form.get("Phone Number") if request.form.get("Phone Number") is not None else "NULL"
+                nickname = request.form.get("What do you like to be called?")
+                # emergency_contact = request.form.get("Emergency Contact") 
+                hobbies = request.form.get("Hobbies")
+                photo = request.files.get("Upload Photo")
+
+                get_user_query = """
+                                SELECT user_uid FROM wwp.user
+                                WHERE user_email = \'""" + email + """\'
+                                OR user_phone = \'""" + phone + """\';
+                                """
+                user = execute(get_user_query, "get", conn)
+                print("get_user_response: ", user)
+                if user["code"] == 280:
+                    uid = user["result"][0]["user_uid"]
+                    key = "wwp_user/" + str(uid) + "_" + getNow()
+                    photo_url = helper_upload_user_img(photo, key)
+
+                    update_walkie_profile_query = '''
+                                UPDATE wwp.user
+                                SET user_dob = \'''' + dob + '''\',
+                                    user_nickname = \'''' + nickname + '''\',
+                                    user_bio = \'''' + bio + '''\',
+                                    user_hobbies = \'''' + hobbies + '''\',
+                                    user_photo_url = \'''' + photo_url + '''\'
+                                WHERE user_uid = \'''' + uid + '''\';
+                                '''
+                    update_walkie = execute(update_walkie_profile_query, "post", conn)
+                    if update_walkie["code"] == 281:
+                        response["message"] = "281, Walkie profile update successfully."
+                        return response, 200
+
+            elif request.form.get("role") == "WALKER":
+                dob = request.form.get("Date of Birth")
+                bio = request.form.get("Bio")
+                email = request.form.get("Email") if request.form.get("Email") is not None else "NULL"
+                phone = request.form.get("Phone Number") if request.form.get("Phone Number") is not None else "NULL"
+                nickname = request.form.get("What do you like to be called?")
+                hobbies = request.form.get("Hobbies")
+                photo = request.files.get("Upload Photo")
+                walker_experience = request.form.get("Relevant Experience") if request.form.get("Relevant Experience") else "NULL"
+                walker_ssn = request.form.get("Social Security Number")
+                id_proof =request.files.get("Id Photo")
+                walker_desired_radius = "10"    # request.form.get("Desired Radius")
+
+                get_user_query = """
+                                SELECT user_uid FROM wwp.user
+                                WHERE user_email = \'""" + email + """\'
+                                OR user_phone = \'""" + phone + """\';
+                                """
+                user = execute(get_user_query, "get", conn)
+                print("get_user_response: ", user)
+                if user["code"] == 280:
+                    uid = user["result"][0]["user_uid"]
+                    key = "wwp_user/" + str(uid) + "_" + getNow()
+                    photo_url = helper_upload_user_img(photo, key)
+                    id_key = "wwp_walker_idproof/" + str(uid) + "_" + getNow()
+                    id_photo_url = helper_upload_user_img(id_proof, id_key)
+                    print(photo_url, id_photo_url)
+
+                    update_walker_profile_query = '''
+                                UPDATE wwp.user
+                                SET user_dob = \'''' + dob + '''\',
+                                    user_nickname = \'''' + nickname + '''\',
+                                    user_bio = \'''' + bio + '''\',
+                                    user_hobbies = \'''' + hobbies + '''\',
+                                    user_photo_url = \'''' + photo_url + '''\',
+                                    walker_experience = \'''' + walker_experience + '''\',
+                                    walker_ssn = \'''' + walker_ssn + '''\',
+                                    walker_id_proof_url = \'''' + id_photo_url + '''\',
+                                    walker_desired_radius = \'''' + walker_desired_radius + '''\'
+                                WHERE user_uid = \'''' + uid + '''\';
+                                '''
+                    update_walker = execute(update_walker_profile_query, "post", conn)
+                    print("update_walker_profile response: ", update_walker)
+                    if update_walker["code"] == 281:
+                        response["message"] = "281, Walker profile update successfully."
+                        return response, 200
+
+        except:
+            raise BadRequest("Request failed, please try again later.")
+        finally:
+            disconnect(conn)
+
+
+# -- Examples of Other Queries start here -------------------------------------------------------------------------------
+
+
+# AVAILABLE APPOINTMENTS
+class AvailableAppointments(Resource):
+    def get(self, date_value):
+        print("\nInside Available Appointments")
+        response = {}
+        items = {}
+
+        try:
+            conn = connect()
+            print("Inside try block", date_value)
+
+            # CALCULATE AVAILABLE TIME SLOTS
+            query = """
+                    -- FIND AVAILABLE TIME SLOTS - WORKS
+                    SELECT -- *
+                        DATE_FORMAT(ts_begin, '%T') AS start_time
+                    FROM (
+                        -- GET ALL TIME SLOTS
+                        SELECT *,
+                            TIME(ts.begin_datetime) AS ts_begin
+                        FROM io.time_slots ts
+                        -- LEFT JOIN WITH CURRENT APPOINTMENTS
+                        LEFT JOIN (
+                            SELECT * FROM io.appointments
+                            WHERE appt_date = '""" + date_value + """') AS appt
+                        ON TIME(ts.begin_datetime) = appt.appt_time
+                        -- LEFT JOIN WITH AVAILABILITY
+                        LEFT JOIN (
+                            SELECT * FROM io.availability
+                            WHERE date = '""" + date_value + """') AS avail
+                        ON TIME(ts.begin_datetime) = avail.start_time_notavailable
+                            OR (TIME(ts.begin_datetime) > avail.start_time_notavailable AND TIME(ts.end_datetime) <= ADDTIME(avail.end_time_notavailable,"0:29"))
+                        -- LEFT JOIN WITH OPEN HOURS
+                        LEFT JOIN (
+                            SELECT * FROM nitya.days
+                            WHERE dayofweek = DAYOFWEEK('""" + date_value + """')) AS openhrs
+                        ON TIME(ts.begin_datetime) = openhrs.morning_start_time
+                            OR (TIME(ts.begin_datetime) > openhrs.morning_start_time AND TIME(ts.end_datetime) <= ADDTIME(openhrs.morning_end_time,"0:29"))
+                            OR TIME(ts.begin_datetime) = openhrs.afternoon_start_time
+                            OR (TIME(ts.begin_datetime) > openhrs.afternoon_start_time AND TIME(ts.end_datetime) <= ADDTIME(openhrs.afternoon_end_time,"0:29"))
+                    ) AS ts_avail
+                    WHERE ISNULL(ts_avail.appointment_uid)   -- NO APPOINTMENTS SCHEDULED
+                        AND ISNULL(ts_avail.prac_avail_uid)  -- NO AVAILABILITY RESTRICTIONS
+                        AND !ISNULL(days_uid);               -- OPEN HRS ONLY
+                    """
+
+            available_times = execute(query, 'get', conn)
+            print("Available Times: ", str(available_times['result']))
+            print("Number of time slots: ", len(available_times['result']))
+            # print("Available Times: ", str(available_times['result'][0]["start_time"]))
+
+            return available_times
+
+        except:
+            raise BadRequest('Available Time Request failed, please try again later.')
+        finally:
+            disconnect(conn)
+
+
+# BOOK APPOINTMENT
+class CreateAppointment(Resource):
+    def post(self):
+        print("in Create Appointment class")
+        response = {}
+        items = {}
+        try:
+            conn = connect()
+            data = request.get_json(force=True)
+            print(data)
+            # print to Received data to Terminal
+            # print("Received:", data)
+            name = data["name"]
+            phone_no = data["phone"]
+            datevalue = data["appt_date"]
+            timevalue = data["appt_time"]
+            email = data["email"]
+            company_name = data["company"]
+            company_url = data["url"]
+            message = data["message"]
+
+            print("name", name)
+            print("phone_no", phone_no)
+            print("date", datevalue)
+            print("time", timevalue)
+            print("email", email)
+            print("company_name", company_name)
+            print("company_name", company_url)
+            print("message", message)
+
+            new_appointment_uid = get_new_appointmentUID(conn)
+            print("NewID = ", new_appointment_uid)
+            print(getNow())
+
+            query = '''
+                INSERT INTO io.appointments
+                SET appointment_uid = \'''' + new_appointment_uid + '''\',
+                    appt_created_at = \'''' + getNow() + '''\',
+                    name = \'''' + name + '''\',
+                    phone_no = \'''' + phone_no + '''\',
+                    appt_date = \'''' + datevalue + '''\',
+                    appt_time = \'''' + timevalue + '''\',
+                    email = \'''' + email + '''\',
+                    company = \'''' + company_name + '''\',
+                    url = \'''' + company_url + '''\',
+                    message = \'''' + message + '''\'
+                '''
+
+            items = execute(query, "post", conn)
+            print("items: ", items)
+            if items["code"] == 281:
+                response["message"] = "Appointments Post successful"
+                return response, 200
+        except:
+            raise BadRequest("Request failed, please try again later.")
+        finally:
+            disconnect(conn)
+
+        # ENDPOINT AND JSON OBJECT THAT WORKS
+        # http://localhost:4000/api/v2/createappointment
+
+
+# ADD CONTACT
+class AddContact(Resource):
+    def post(self):
+        response = {}
+        items = {}
+        try:
+            conn = connect()
+            data = request.get_json(force=True)
+            # print to Received data to Terminal
+            # print("Received:", data)
+
+            fname = data["first_name"]
+            lname = data["last_name"]
+            email = data["email"]
+            phone = data["phone"]
+            subject = data["subject"]
+            print(data)
+
+            new_contact_uid = get_new_contactUID(conn)
+            print(new_contact_uid)
+            print(getNow())
+
+            query = '''
+                INSERT INTO io.contact
+                SET contact_uid = \'''' + new_contact_uid + '''\',
+                    contact_created_at = \'''' + getNow() + '''\',
+                    first_name = \'''' + fname + '''\',
+                    last_name = \'''' + lname + '''\',
+                    email = \'''' + email + '''\',
+                    phone = \'''' + phone + '''\',
+                    subject = \'''' + subject + '''\'
+                '''
+
+            items = execute(query, "post", conn)
+            print("items: ", items)
+            if items["code"] == 281:
+                response["message"] = "Contact Post successful"
+                return response, 200
+        except:
+            raise BadRequest("Request failed, please try again later.")
+        finally:
+            disconnect(conn)
+
+
+
+
 class stripe_key(Resource):
 
     def get(self, desc):
@@ -1168,8 +1108,11 @@ class stripe_key(Resource):
 
 
 # ===========================================================
-# Define API routes
-api.add_resource(SignUp, '/api/v2/SignUp')
+# Define wwp API routes
+api.add_resource(createAccount, "/api/v2/createAccount")
+api.add_resource(accountsalt, "/api/v2/accountsalt")
+api.add_resource(login, "/api/v2/login/")
+api.add_resource(updateProfile, '/api/v2/updateProfile')
 
 # reference APIs
 
@@ -1177,9 +1120,7 @@ api.add_resource(CreateAppointment, "/api/v2/createAppointment")
 api.add_resource(AvailableAppointments, "/api/v2/availableAppointments/<string:date_value>")
 api.add_resource(AddContact, "/api/v2/addContact")
 
-api.add_resource(createAccount, "/api/v2/createAccount")
-api.add_resource(accountsalt, "/api/v2/accountsalt")
-api.add_resource(login, "/api/v2/login/")
+
 api.add_resource(stripe_key, '/api/v2/stripe_key/<string:desc>')
 
 if __name__ == '__main__':
