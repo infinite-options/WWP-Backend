@@ -119,7 +119,7 @@ app.config['MAIL_USE_SSL'] = True
 
 # Set this to false when deploying to live application
 # app.config['DEBUG'] = True
-app.config['DEBUG'] = False
+#app.config['DEBUG'] = False
 
 mail = Mail(app)
 # s = URLSafeTimedSerializer('thisisaverysecretkey')
@@ -836,17 +836,17 @@ class updateProfile(Resource):
         try:
             conn = connect()
             if request.form.get("role") == "WALKIE":
-                dob = request.form.get("Date of Birth")
+                dob = request.form.get("dob")
                 # print(dob)
-                bio = request.form.get("Bio")
+                bio = request.form.get("bio")
                 # print(bio)
-                email = request.form.get("Email") if request.form.get("Email") is not None else "NULL"
+                email = request.form.get("email") if request.form.get("email") is not None else "NULL"
                 # print(email)
-                phone = request.form.get("Phone Number") if request.form.get("Phone Number") is not None else "NULL"
-                nickname = request.form.get("What do you like to be called?")
+                phone = request.form.get("phone") if request.form.get("phone") is not None else "NULL"
+                nickname = request.form.get("nickname")
                 # emergency_contact = request.form.get("Emergency Contact") 
-                hobbies = request.form.get("Hobbies")
-                photo = request.files.get("Upload Photo")
+                hobbies = request.form.get("hobbies")
+                photo = request.files.get("photo")
 
                 get_user_query = """
                                 SELECT user_uid FROM wwp.user
@@ -875,16 +875,16 @@ class updateProfile(Resource):
                         return response, 200
 
             elif request.form.get("role") == "WALKER":
-                dob = request.form.get("Date of Birth")
-                bio = request.form.get("Bio")
-                email = request.form.get("Email") if request.form.get("Email") is not None else "NULL"
-                phone = request.form.get("Phone Number") if request.form.get("Phone Number") is not None else "NULL"
-                nickname = request.form.get("What do you like to be called?")
-                hobbies = request.form.get("Hobbies")
-                photo = request.files.get("Upload Photo")
-                walker_experience = request.form.get("Relevant Experience") if request.form.get("Relevant Experience") else "NULL"
-                walker_ssn = request.form.get("Social Security Number")
-                id_proof =request.files.get("Id Photo")
+                dob = request.form.get("dob")
+                bio = request.form.get("bio")
+                email = request.form.get("email") if request.form.get("email") is not None else "NULL"
+                phone = request.form.get("phone") if request.form.get("phone") is not None else "NULL"
+                nickname = request.form.get("nickname")
+                hobbies = request.form.get("hobbies")
+                photo = request.files.get("photo")
+                walker_experience = request.form.get("relevant_experience") if request.form.get("relevant_experience") else "NULL"
+                walker_ssn = request.form.get("walker_ssn")
+                id_proof =request.files.get("id_photo")
                 walker_desired_radius = "10"    # request.form.get("Desired Radius")
 
                 get_user_query = """
